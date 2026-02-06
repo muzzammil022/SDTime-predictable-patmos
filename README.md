@@ -1,2 +1,5 @@
-# Virtual-CPU-IE-Simulator
-A Software Defined Virtual CPU and Instruction Execution Simulator
+# Software defined Time-predictable processor architechture with python
+A Web based simulation with WebGL demo. We have chosen the example of a car driving in a traffic scenario taking the dependent values of the breaking system of the car when in autopilot mode taking in consideration the acceleration speed of the car and the distance and situation of the vehicles around. This is just a lame example of this implementation. Better RT examples include robotic arms in medical surgery, flight radar etc.
+The plan is to do the following: Show a UI where the user can test with the car simulation program that runs on python, or write their own program with required functions for their own use, this will be best suitable for research and testing purposes as this involves using patmos official simulator tool as well as an emulator. this will solve the issue for tesla especially in a country like india. This reduces the requirement of heavy GPUs as in a AI driven system and keeps it resource efficient and cost effective. 
+
+So we plan to send the required params with FastAPI to the backend running on a cloud Ubuntu (linux) server or local ubuntu/mac engine. Either way works. FastAPI should send the params to the backend in a way that patmos understand i.e in C language and return the compiled output back to the user i.e the Frontend
