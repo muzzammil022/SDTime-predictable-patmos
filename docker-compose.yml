@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  # ── FastAPI backend ──
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app                # hot-reload during dev
+      - /var/run/docker.sock:/var/run/docker.sock   # lets backend talk to Docker
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - executor
+
+  # ── Sandboxed Linux container (built once, used on-demand) ──
+  executor:
+    build:
+      context: ./executor
+      dockerfile: Dockerfile
+    image: sdtime-executor:latest      # tag so backend can reference it
+    # This service just builds the image; it doesn't need to stay running.
+    # The backend spawns ephemeral containers from this image.
+    entrypoint: ["echo", "executor image ready"]
