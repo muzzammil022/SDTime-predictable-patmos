@@ -98,16 +98,21 @@ export default function RoadCanvas({
         const ox = toScreenX(obs.x) - obs.width / 2;
         const oy = toScreenY(obs.y) - obs.height / 2;
 
+        // Detect if this obstacle is part of a roadblock (both lanes blocked)
+        const isRoadblock = obstacles.some(
+          (other) => other !== obs && Math.abs(other.y - obs.y) < 50
+        );
+
         // Shadow
         ctx.fillStyle = "rgba(0,0,0,0.3)";
         ctx.fillRect(ox + 3, oy + 3, obs.width, obs.height);
 
         // Obstacle body
-        ctx.fillStyle = "#e63946";
+        ctx.fillStyle = isRoadblock ? "#b91c1c" : "#e63946";
         ctx.fillRect(ox, oy, obs.width, obs.height);
 
         // Hazard stripes
-        ctx.fillStyle = "#ffb703";
+        ctx.fillStyle = isRoadblock ? "#ff0000" : "#ffb703";
         for (let s = 0; s < obs.width; s += 12) {
           ctx.fillRect(ox + s, oy, 6, obs.height);
         }
@@ -116,7 +121,7 @@ export default function RoadCanvas({
         ctx.fillStyle = "#fff";
         ctx.font = "bold 11px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("OBSTACLE", toScreenX(obs.x), oy - 6);
+        ctx.fillText(isRoadblock ? "ROADBLOCK" : "OBSTACLE", toScreenX(obs.x), oy - 6);
       }
 
       // === Car ===
@@ -171,7 +176,13 @@ export default function RoadCanvas({
         ctx.fillStyle = "#00b400";
         ctx.font = "bold 24px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("AVOIDED!", width / 2, height / 2);
+        if (car.speed <= 1) {
+          ctx.fillText("SAFE STOP!", width / 2, height / 2 - 14);
+          ctx.font = "bold 13px monospace";
+          ctx.fillText("Patmos reacted in time", width / 2, height / 2 + 10);
+        } else {
+          ctx.fillText("AVOIDED!", width / 2, height / 2);
+        }
       }
 
       // === HUD: Speed ===

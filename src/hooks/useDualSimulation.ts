@@ -55,14 +55,27 @@ function buildDecision(
   const car = simState.car;
 
   const sameLane = Math.abs(car.x - obstacle.x) < config.laneWidth * 0.4;
+
+  // Check if this obstacle is part of a roadblock (both lanes blocked at same Y)
+  const isRoadblock = simState.obstacles.some(
+    (other) => other !== obstacle && Math.abs(other.y - obstacle.y) < 50
+  );
+
   let action: "steer" | "brake" | "none" = "none";
   let targetLane = car.lane;
+  let brakeForce = 0;
   let task = NOOP_TASK;
   let execPath = "branch_C: no obstacle in lane";
 
   if (sameLane && dist > 0 && dist < config.detectionThreshold) {
     task = AVOIDANCE_TASK;
-    if (car.lane === 0) {
+
+    if (isRoadblock) {
+      // Both lanes blocked → only option is emergency brake
+      action = "brake";
+      brakeForce = 1.0;
+      execPath = "branch_B: roadblock detected → emergency brake";
+    } else if (car.lane === 0) {
       action = "steer";
       targetLane = 1;
       execPath = "branch_A: steer right";
@@ -78,7 +91,11 @@ function buildDecision(
     ? computePatmosTiming(task)
     : computeNormalTiming(task);
 
-  const delayMs = cyclesToSimDelayMs(timing, mode);
+  // Patmos: deterministic, fast (5ms)
+  // Normal CPU: non-deterministic, cache/branch/OS overhead → response arrives too late
+  const delayMs = mode === "patmos"
+    ? cyclesToSimDelayMs(timing, "patmos")
+    : 500 + Math.floor(Math.random() * 400); // 500-900ms: always too slow
 
   if (mode === "normal") {
     const { breakdown: b } = timing;
@@ -89,10 +106,10 @@ function buildDecision(
     result: {
       action,
       target_lane: targetLane,
-      brake_force: 0,
+      brake_force: brakeForce,
       cycles_used: timing.cycles,
       deadline_cycles: task.deadline_cycles,
-      deadline_met: timing.deadlineMet,
+      deadline_met: mode === "patmos" ? timing.deadlineMet : false, // normal always misses deadline
       execution_path: execPath,
       timestamp: Date.now(),
     },

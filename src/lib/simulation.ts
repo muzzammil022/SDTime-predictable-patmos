@@ -7,18 +7,20 @@ import {
   DEFAULT_CONFIG,
 } from "./types";
 
-/** Generate obstacles spread along the road based on config */
+/** Generate obstacles spread along the road based on config.
+ *  Last 2 obstacles form a roadblock (both lanes blocked) — car must brake. */
 function generateObstacles(config: SimulationConfig): Obstacle[] {
-  const count = Math.max(1, Math.min(5, config.numObstacles));
+  const count = Math.max(3, Math.min(7, config.numObstacles));
   const obstacles: Obstacle[] = [];
   const startY = 500;
   const spacing = config.difficulty === "hard" ? 350 : 500;
 
-  for (let i = 0; i < count; i++) {
-    // Alternate lanes, with some variation for hard mode
+  // Steerable obstacles (alternating lanes)
+  const steerableCount = Math.max(1, count - 2);
+  for (let i = 0; i < steerableCount; i++) {
     const lane = config.difficulty === "hard"
-      ? (i % 2 === 0 ? 0 : 1) // alternating makes you zigzag
-      : (i % 3 === 0 ? 0 : i % 3 === 1 ? 1 : 0); // mostly lane 0
+      ? (i % 2 === 0 ? 0 : 1)
+      : (i % 3 === 0 ? 0 : i % 3 === 1 ? 1 : 0);
     obstacles.push({
       x: getLaneCenter(lane, config),
       y: startY + i * spacing,
@@ -27,6 +29,19 @@ function generateObstacles(config: SimulationConfig): Obstacle[] {
       height: 40,
     });
   }
+
+  // Roadblock: 2 obstacles blocking BOTH lanes at the same Y
+  const roadblockY = startY + steerableCount * spacing + spacing;
+  for (let lane = 0; lane < config.numLanes; lane++) {
+    obstacles.push({
+      x: getLaneCenter(lane, config),
+      y: roadblockY,
+      lane,
+      width: 60,
+      height: 40,
+    });
+  }
+
   return obstacles;
 }
 
@@ -98,6 +113,13 @@ export function stepSimulation(
   // Apply braking
   if (next.car.braking) {
     next.car.speed = Math.max(0, next.car.speed - config.brakeDeceleration * dt);
+    // If car braked to a full stop → safe stop (completed)
+    if (next.car.speed <= 0) {
+      next.car.speed = 0;
+      if (next.status !== "collision") {
+        next.status = "completed";
+      }
+    }
   }
 
   // Animate lane change
@@ -138,9 +160,9 @@ export function stepSimulation(
         break;
       }
     }
-    if (!currentlyAvoiding && !allPassed) {
+    // Don't reset to running if car is still braking (roadblock stop)
+    if (!currentlyAvoiding && !allPassed && !next.car.braking) {
       next.status = "running";
-      next.car.braking = false;
     }
   }
 

@@ -5,7 +5,7 @@ import ControlPanel from "@/components/ControlPanel";
 import { useDualSimulation } from "@/hooks/useDualSimulation";
 import { DEFAULT_CONFIG, DIFFICULTY_PRESETS } from "@/lib/types";
 
-const NUM_OBSTACLES = 3;
+const NUM_OBSTACLES = 5;
 const DIFFICULTY = "hard" as const;
 
 function StatusText({ status }: { status: string }) {
@@ -15,8 +15,8 @@ function StatusText({ status }: { status: string }) {
       {status === "running" && "Driving..."}
       {status === "patmos-triggered" && "⚡ Decision pending..."}
       {status === "avoiding" && "Avoiding obstacle..."}
-      {status === "completed" && `✓ ${NUM_OBSTACLES} obstacles avoided`}
-      {status === "collision" && "✗ Collision!"}
+      {status === "completed" && "✓ Safe stop — all obstacles handled!"}
+      {status === "collision" && "✗ Collision — response too slow!"}
     </div>
   );
 }
