@@ -145,7 +145,7 @@ function OutputContent({
           {" "}Cycles: {normal.cycles} | WCET: {normal.wcet} | Jitter: {normal.jitter}
         </span>
       </div>
-      <div className="border-t border-white/[0.06] pt-2 mt-2">
+      <div className="border-t border-white/6 pt-2 mt-2">
         <div className="text-[12px] leading-5">
           <span className="text-emerald-400">[Result]</span>
           <span className="text-slate-300">
@@ -163,11 +163,11 @@ export default function BottomPanel({
 }: BottomPanelProps) {
   return (
     <div
-      className="flex flex-col bg-[#0d1117] border-t border-white/[0.06] flex-shrink-0"
+      className="flex flex-col bg-[#0d1117] border-t border-white/6 shrink-0"
       style={{ height }}
     >
       {/* Tab bar */}
-      <div className="h-8 flex items-center justify-between px-2 border-b border-white/[0.06] flex-shrink-0">
+      <div className="h-8 flex items-center justify-between px-2 border-b border-white/6 shrink-0">
         <div className="flex items-center gap-0.5">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -177,8 +177,8 @@ export default function BottomPanel({
                 onClick={() => onTabChange(tab.id)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] transition-all duration-150
                   ${isActive
-                    ? "text-slate-200 bg-white/[0.06]"
-                    : "text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]"}`}
+                    ? "text-slate-200 bg-white/6"
+                    : "text-slate-500 hover:text-slate-300 hover:bg-white/3"}`}
               >
                 <tab.icon size={13} />
                 {tab.label}
@@ -194,7 +194,7 @@ export default function BottomPanel({
 
         <button
           onClick={onClose}
-          className="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/[0.06] transition-colors"
+          className="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/6 transition-colors"
         >
           <IconClose size={14} />
         </button>

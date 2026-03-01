@@ -93,13 +93,13 @@ export default function CodeEditor({ code, onChange }: CodeEditorProps) {
       {/* Line numbers gutter */}
       <div
         ref={lineNumRef}
-        className="w-[52px] bg-slate-800 border-r border-white/[0.04] overflow-hidden select-none flex-shrink-0 pt-3"
+        className="w-13 bg-slate-800 border-r border-white/4 overflow-hidden select-none shrink-0 pt-3"
         style={monoStyle}
       >
         {lines.map((_, i) => (
           <div
             key={i}
-            className="h-[22px] text-right pr-3 text-[11px] leading-[22px] text-slate-600"
+            className="h-5.5 text-right pr-3 text-[11px] leading-5.5 text-slate-600"
           >
             {i + 1}
           </div>
@@ -115,7 +115,7 @@ export default function CodeEditor({ code, onChange }: CodeEditorProps) {
         <div className="relative" style={{ minHeight: "100%" }}>
           {/* Syntax-highlighted display layer */}
           <pre
-            className="p-3 text-[13px] leading-[22px] text-[#d4d4d4] whitespace-pre pointer-events-none"
+            className="p-3 text-[13px] leading-5.5 text-[#d4d4d4] whitespace-pre pointer-events-none"
             style={monoStyle}
             aria-hidden="true"
           >
@@ -131,7 +131,7 @@ export default function CodeEditor({ code, onChange }: CodeEditorProps) {
             autoCapitalize="off"
             autoCorrect="off"
             className="absolute inset-0 w-full h-full resize-none bg-transparent text-transparent
-              caret-slate-200 outline-none p-3 text-[13px] leading-[22px] whitespace-pre
+              caret-slate-200 outline-none p-3 text-[13px] leading-5.5 whitespace-pre
               selection:bg-indigo-500/25 z-10"
             style={{ ...monoStyle, tabSize: 4 }}
           />
@@ -139,12 +139,12 @@ export default function CodeEditor({ code, onChange }: CodeEditorProps) {
       </div>
 
       {/* Minimap indicator (decorative) */}
-      <div className="w-[50px] bg-slate-800/50 border-l border-white/[0.04] flex-shrink-0 hidden xl:block">
-        <div className="mt-3 mx-1.5 space-y-[1px]">
+      <div className="w-12.5 bg-slate-800/50 border-l border-white/4 shrink-0 hidden xl:block">
+        <div className="mt-3 mx-1.5 space-y-px">
           {lines.slice(0, 60).map((line, i) => (
             <div
               key={i}
-              className="h-[2px] rounded-sm bg-slate-600/30"
+              className="h-0.5 rounded-sm bg-slate-600/30"
               style={{ width: `${Math.min(100, Math.max(10, line.length * 1.5))}%` }}
             />
           ))}

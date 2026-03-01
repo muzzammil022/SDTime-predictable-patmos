@@ -82,11 +82,11 @@ function TreeNode({
     return (
       <button
         onClick={() => node.fileId && onFileOpen(node.fileId)}
-        className={`w-full flex items-center gap-1.5 py-[3px] text-left transition-colors duration-150 rounded-sm
+        className={`w-full flex items-center gap-1.5 py-0.75 text-left transition-colors duration-150 rounded-sm
           ${isActive
             ? "bg-indigo-500/15 text-indigo-300"
             : node.fileId
-              ? "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+              ? "text-slate-400 hover:text-slate-200 hover:bg-white/4"
               : "text-slate-500 cursor-default"}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
@@ -101,7 +101,7 @@ function TreeNode({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-1 py-[3px] text-slate-400 hover:text-slate-200 transition-colors duration-150 rounded-sm hover:bg-white/[0.04]"
+        className="w-full flex items-center gap-1 py-0.75 text-slate-400 hover:text-slate-200 transition-colors duration-150 rounded-sm hover:bg-white/4"
         style={{ paddingLeft: `${depth * 12 + 4}px` }}
       >
         {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
@@ -156,7 +156,7 @@ function SearchPanel() {
       <input
         type="text"
         placeholder="Search..."
-        className="w-full h-7 px-2 rounded bg-white/[0.04] border border-white/[0.06] text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/40 transition-colors"
+        className="w-full h-7 px-2 rounded bg-white/4 border border-white/6 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/40 transition-colors"
       />
       <p className="text-[10px] text-slate-500 mt-3 text-center">Type to search across files</p>
     </div>
@@ -191,7 +191,7 @@ function ExtensionsPanel() {
       </div>
       <div className="space-y-1">
         {extensions.map((ext) => (
-          <div key={ext.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/[0.04] transition-colors">
+          <div key={ext.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/4 transition-colors">
             <div className={`w-2 h-2 rounded-full ${ext.active ? "bg-green-500" : "bg-slate-600"}`} />
             <div>
               <p className="text-[11px] text-slate-300">{ext.name}</p>
@@ -233,9 +233,9 @@ export default function Sidebar({
   expanded, activeItem, onItemClick, files, onFileOpen, activeFileId,
 }: SidebarProps) {
   return (
-    <div className="flex h-full flex-shrink-0">
+    <div className="flex h-full shrink-0">
       {/* Icon rail - always visible */}
-      <div className="w-12 bg-slate-950 border-r border-white/[0.06] flex flex-col items-center py-2 gap-1 flex-shrink-0">
+      <div className="w-12 bg-slate-950 border-r border-white/6 flex flex-col items-center py-2 gap-1 shrink-0">
         {NAV_ITEMS.map((item) => {
           const isActive = activeItem === item.id && expanded;
           return (
@@ -244,12 +244,12 @@ export default function Sidebar({
                 onClick={() => onItemClick(item.id)}
                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 relative
                   ${isActive
-                    ? "text-white bg-white/[0.08]"
-                    : "text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]"}`}
+                    ? "text-white bg-white/8"
+                    : "text-slate-500 hover:text-slate-300 hover:bg-white/4"}`}
               >
                 <item.icon size={20} />
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-indigo-500 rounded-r" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-indigo-500 rounded-r" />
                 )}
               </button>
               {!expanded && <span className="tooltip-text">{item.label}</span>}
@@ -260,10 +260,10 @@ export default function Sidebar({
 
       {/* Expanded panel */}
       <div
-        className="bg-slate-900/60 border-r border-white/[0.06] overflow-hidden transition-all duration-200 ease-out"
+        className="bg-slate-900/60 border-r border-white/6 overflow-hidden transition-all duration-200 ease-out"
         style={{ width: expanded ? 220 : 0 }}
       >
-        <div className="w-[220px] h-full overflow-y-auto">
+        <div className="w-55 h-full overflow-y-auto">
           {activeItem === "explorer" && (
             <ExplorerPanel files={files} onFileOpen={onFileOpen} activeFileId={activeFileId} />
           )}

@@ -64,7 +64,7 @@ export default function IDELayout() {
   const [executionResult, setExecutionResult] = useState<CodeRunnerResponse | null>(null);
 
   /* --- Preview width (percentage) --- */
-  const [previewWidth, setPreviewWidth] = useState(32);
+  const [previewWidth, setPreviewWidth] = useState(40);
 
   /* Derived: current active tab */
   const activeTab = openTabs.find((t) => t.id === activeTabId) || openTabs[0];
@@ -285,7 +285,7 @@ export default function IDELayout() {
 
             {/* Horizontal resize handle */}
             <div
-              className="w-[3px] cursor-col-resize flex-shrink-0 bg-transparent hover:bg-indigo-500/50 active:bg-indigo-500 transition-colors duration-100 relative group"
+              className="w-0.75 cursor-col-resize shrink-0 bg-transparent hover:bg-indigo-500/50 active:bg-indigo-500 transition-colors duration-100 relative group"
               onMouseDown={handleHResizeStart}
             >
               <div className="absolute inset-y-0 -left-1 -right-1" />
@@ -294,7 +294,7 @@ export default function IDELayout() {
             {/* Preview panel */}
             <div
               style={{ width: `${previewWidth}%` }}
-              className="flex-shrink-0 overflow-hidden"
+              className="shrink-0 overflow-hidden"
             >
               <PreviewPanel />
             </div>
@@ -303,7 +303,7 @@ export default function IDELayout() {
           {/* Vertical resize handle (above bottom panel) */}
           {bottomPanelOpen && (
             <div
-              className="h-[3px] cursor-row-resize flex-shrink-0 bg-transparent hover:bg-indigo-500/50 active:bg-indigo-500 transition-colors duration-100 relative group"
+              className="h-0.75 cursor-row-resize shrink-0 bg-transparent hover:bg-indigo-500/50 active:bg-indigo-500 transition-colors duration-100 relative group"
               onMouseDown={handleVResizeStart}
             >
               <div className="absolute inset-x-0 -top-1 -bottom-1" />
@@ -325,7 +325,7 @@ export default function IDELayout() {
       </div>
 
       {/* Status bar */}
-      <div className="h-6 bg-indigo-600 flex items-center justify-between px-3 text-[11px] text-white/90 flex-shrink-0">
+      <div className="h-6 bg-indigo-600 flex items-center justify-between px-3 text-[11px] text-white/90 shrink-0">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
