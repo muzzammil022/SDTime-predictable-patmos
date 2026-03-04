@@ -85,33 +85,50 @@ export interface TimingComparison {
   predictabilityGain: number; // jitter reduction ratio
 }
 
-// === Code Runner Types ===
+// === Code Runner Types (Patmos Backend) ===
+
+export type ExecutionMode = "simulate" | "emulate" | "both";
 
 export interface CodeRunnerRequest {
   code: string;
-  language: "c";
-  inputs?: Record<string, number>;
+  mode: ExecutionMode;
+  timeout?: number;
+  run_gcc?: boolean;
 }
 
-export interface CodeRunnerResponse {
+/** Stats from pasim / patemu */
+export interface PatmosStats {
+  cycles: number;
+  instructions: number;
+  bundles: number;
+  cache_hits: number;
+  cache_misses: number;
+  method_cache_hits: number;
+  method_cache_misses: number;
+  stack_cache_ops: number;
+  raw_output: string;
+}
+
+/** Result from a single tool (pasim, patemu, or gcc) */
+export interface ExecutionResult {
   success: boolean;
   output: string;
-  error?: string;
-  timing: TimingComparison;
-  patmos_trace: {
-    branch_taken: string;
-    instructions_executed: number;
-    cache_hits: number;
-    cache_misses: number;
-  };
-  normal_trace: {
-    branch_taken: string;
-    instructions_executed: number;
-    cache_hits: number;
-    cache_misses: number;
-    pipeline_stalls: number;
-    branch_mispredictions: number;
-  };
+  error?: string | null;
+  exit_code: number;
+  wall_time_ms: number;
+  tool: "pasim" | "patemu" | "gcc";
+  stats?: PatmosStats | null;
+}
+
+/** Full response from /api/execute */
+export interface CodeRunnerResponse {
+  success: boolean;
+  code: string;
+  mode: string;
+  pasim?: ExecutionResult | null;
+  patemu?: ExecutionResult | null;
+  gcc?: ExecutionResult | null;
+  summary?: string | null;
 }
 
 // === Simulation Status ===

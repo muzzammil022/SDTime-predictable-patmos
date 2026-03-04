@@ -16,12 +16,13 @@ services:
     depends_on:
       - executor
 
-  # ── Sandboxed Linux container (built once, used on-demand) ──
+  # ── Patmos Toolchain Container ──
+  # Contains: patmos-clang, pasim, patemu, gcc
+  # Built once (~30-60 min first time), cached after.
+  # The backend spawns ephemeral containers from this image.
   executor:
     build:
       context: ./executor
       dockerfile: Dockerfile
     image: sdtime-executor:latest      # tag so backend can reference it
-    # This service just builds the image; it doesn't need to stay running.
-    # The backend spawns ephemeral containers from this image.
-    entrypoint: ["echo", "executor image ready"]
+    entrypoint: ["echo", "executor image ready — patmos-clang + pasim + patemu"]

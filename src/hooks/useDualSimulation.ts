@@ -23,6 +23,15 @@ import {
 
 const FIXED_DT = 1 / 60;
 
+/** Real timing data from the backend (pasim/patemu/gcc) */
+export interface RealTimingData {
+  pasimCycles: number;
+  pasimWallMs: number;
+  patemuCycles: number;
+  patemuWallMs: number;
+  gccWallMs: number;
+}
+
 /** Per-obstacle timing record */
 export interface ObstacleTimingEvent {
   obstacleIndex: number;
@@ -48,7 +57,8 @@ function buildDecision(
   simState: SimulationState,
   obsIdx: number,
   config: SimulationConfig,
-  mode: "patmos" | "normal"
+  mode: "patmos" | "normal",
+  realTiming?: RealTimingData
 ): { result: PatmosResponse; delayMs: number; timing: TimingResult } {
   const obstacle = simState.obstacles[obsIdx];
   const dist = obstacle.y - simState.car.y;
@@ -87,15 +97,58 @@ function buildDecision(
   }
 
   // ── Apply timing model ──
-  const timing = mode === "patmos"
-    ? computePatmosTiming(task)
-    : computeNormalTiming(task);
+  // Use real backend data if available, fall back to math model
+  let timing: TimingResult;
+  let delayMs: number;
 
-  // Patmos: deterministic, fast (5ms)
-  // Normal CPU: non-deterministic, cache/branch/OS overhead → response arrives too late
-  const delayMs = mode === "patmos"
-    ? cyclesToSimDelayMs(timing, "patmos")
-    : 500 + Math.floor(Math.random() * 400); // 500-900ms: always too slow
+  if (realTiming && realTiming.pasimCycles > 0) {
+    if (mode === "patmos") {
+      // Real Patmos timing from pasim/patemu
+      const cycles = realTiming.pasimCycles;
+      timing = {
+        cycles,
+        wcet: cycles,
+        bcet: cycles,
+        jitter: 0,
+        executionTimeUs: realTiming.pasimWallMs * 1000,
+        deadlineMet: true,
+        marginCycles: task.deadline_cycles - cycles,
+        breakdown: { base: cycles, cachePenalty: 0, branchPenalty: 0, osPenalty: 0 },
+      };
+      // Patmos: fast and deterministic (scale for visual)
+      delayMs = Math.max(5, Math.round(realTiming.pasimWallMs * 0.1));
+    } else {
+      // Normal CPU: use GCC wall time with added jitter to simulate non-determinism
+      const baseCycles = Math.round(realTiming.gccWallMs * 1000); // rough scale
+      const jitter = Math.floor(Math.random() * 200);
+      const cycles = baseCycles + jitter;
+      timing = {
+        cycles,
+        wcet: baseCycles + 200,
+        bcet: baseCycles,
+        jitter: 200,
+        executionTimeUs: realTiming.gccWallMs * 1000,
+        deadlineMet: false,
+        marginCycles: task.deadline_cycles - cycles,
+        breakdown: {
+          base: baseCycles,
+          cachePenalty: Math.floor(jitter * 0.5),
+          branchPenalty: Math.floor(jitter * 0.3),
+          osPenalty: Math.floor(jitter * 0.2),
+        },
+      };
+      // Normal CPU: slow and variable — scale GCC wall time for visual delay
+      delayMs = Math.max(100, Math.round(realTiming.gccWallMs * 3) + Math.floor(Math.random() * 200));
+    }
+  } else {
+    // Fallback: client-side math model
+    timing = mode === "patmos"
+      ? computePatmosTiming(task)
+      : computeNormalTiming(task);
+    delayMs = mode === "patmos"
+      ? cyclesToSimDelayMs(timing, "patmos")
+      : 500 + Math.floor(Math.random() * 400);
+  }
 
   if (mode === "normal") {
     const { breakdown: b } = timing;
@@ -120,7 +173,7 @@ function buildDecision(
 
 // ── hook ─────────────────────────────────────────────────────────────
 
-export function useDualSimulation(config: SimulationConfig = DEFAULT_CONFIG) {
+export function useDualSimulation(config: SimulationConfig = DEFAULT_CONFIG, realTiming?: RealTimingData) {
   // Mutable sim state lives in a ref so the RAF loop never goes stale
   const simRef = useRef<DualSimState>({
     patmos: createInitialState(config),
@@ -143,6 +196,8 @@ export function useDualSimulation(config: SimulationConfig = DEFAULT_CONFIG) {
   const normalPendingRef = useRef(new Map<number, number>());
   const configRef = useRef(config);
   configRef.current = config;
+  const realTimingRef = useRef(realTiming);
+  realTimingRef.current = realTiming;
 
   // ── decision dispatchers ───────────────────────────────────────────
 
@@ -150,7 +205,7 @@ export function useDualSimulation(config: SimulationConfig = DEFAULT_CONFIG) {
     (mode: "patmos" | "normal", obsIdx: number) => {
       const cfg = configRef.current;
       const sim = mode === "patmos" ? simRef.current.patmos : simRef.current.normal;
-      const { result, delayMs, timing } = buildDecision(sim, obsIdx, cfg, mode);
+      const { result, delayMs, timing } = buildDecision(sim, obsIdx, cfg, mode, realTimingRef.current);
 
       setTimeout(() => {
         const s = simRef.current;

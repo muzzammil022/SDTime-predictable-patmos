@@ -230,4 +230,71 @@ int main() {
     return 0;
 }`,
   },
+  {
+    name: "Obstacle Avoidance",
+    description: "Real-time obstacle avoidance decision — safety-critical with bounded WCET",
+    code: `#include <stdio.h>
+
+// Obstacle avoidance decision algorithm
+// This is the critical real-time code that runs when
+// the car's sensor detects an obstacle ahead.
+//
+// On Patmos: WCET is bounded and deterministic
+// On Normal CPU: timing varies with cache state
+
+#define THRESHOLD 150
+#define BRAKE_MAX 1000
+
+typedef struct { int x, y, speed, lane; } Car;
+typedef struct { int x, y, lane; } Obstacle;
+typedef struct { int action, target_lane, brake_force; } Decision;
+
+// action: 0=none, 1=steer, 2=brake
+Decision avoid(Car car, Obstacle obs) {
+    Decision d = {0, car.lane, 0};
+    int dist = obs.y - car.y;
+    int same = (car.lane == obs.lane);
+
+    if (same && dist > 0 && dist < THRESHOLD) {
+        if (car.lane == 0) {
+            d.action = 1;  // steer right
+            d.target_lane = 1;
+        } else {
+            d.action = 1;  // steer left
+            d.target_lane = 0;
+        }
+        d.brake_force = (THRESHOLD - dist) * BRAKE_MAX / THRESHOLD;
+    }
+    return d;
+}
+
+int main() {
+    Car car = {60, 0, 200, 0};
+    Obstacle obs = {60, 120, 0};
+
+    printf("=== Obstacle Avoidance Benchmark ===\\n");
+    printf("Car: lane=%d speed=%d\\n", car.lane, car.speed);
+    printf("Obstacle: lane=%d dist=%d\\n", obs.lane, obs.y);
+    printf("\\n");
+
+    // Run decision 100 times to measure consistency
+    // On Patmos, every iteration takes the same cycles
+    int steer_count = 0, brake_count = 0, none_count = 0;
+    for (int i = 0; i < 100; i++) {
+        car.y = i;
+        Decision d = avoid(car, obs);
+        if (d.action == 1) steer_count++;
+        else if (d.action == 2) brake_count++;
+        else none_count++;
+    }
+
+    printf("Results over 100 iterations:\\n");
+    printf("  Steer: %d\\n", steer_count);
+    printf("  Brake: %d\\n", brake_count);
+    printf("  None:  %d\\n", none_count);
+    printf("\\nOn Patmos, every iteration takes the same cycles.\\n");
+    printf("On a normal CPU, cache state causes timing variation.\\n");
+    return 0;
+}`,
+  },
 ];
