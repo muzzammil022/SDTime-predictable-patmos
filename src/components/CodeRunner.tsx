@@ -256,7 +256,7 @@ export default function CodeRunner() {
             </h3>
             <div className="space-y-1">
               <StatRow label="Status" value={gccResult.success ? "OK" : "Failed"} />
-              <StatRow label="Wall Time" value={`${gccResult.wall_time_ms.toFixed(0)}ms`} />
+              <StatRow label="Exec Time" value={gccResult.wall_time_ms < 1 ? '<1ms' : `${gccResult.wall_time_ms.toFixed(1)}ms`} />
               {gccResult.output && (
                 <div className="mt-2">
                   <pre className="text-[11px] font-mono text-zinc-400 whitespace-pre-wrap max-h-24 overflow-y-auto">

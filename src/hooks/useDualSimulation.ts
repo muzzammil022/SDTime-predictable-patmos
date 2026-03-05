@@ -15,7 +15,6 @@ import {
 import {
   computePatmosTiming,
   computeNormalTiming,
-  cyclesToSimDelayMs,
   AVOIDANCE_TASK,
   NOOP_TASK,
   type TimingResult,
@@ -103,42 +102,28 @@ function buildDecision(
 
   if (realTiming && realTiming.pasimCycles > 0) {
     if (mode === "patmos") {
-      // Real Patmos timing from pasim/patemu
+      // Real Patmos timing from pasim — deterministic, zero jitter
       const cycles = realTiming.pasimCycles;
       timing = {
         cycles,
         wcet: cycles,
         bcet: cycles,
         jitter: 0,
-        executionTimeUs: realTiming.pasimWallMs * 1000,
+        executionTimeUs: (cycles / 80), // Patmos @ 80 MHz
         deadlineMet: true,
         marginCycles: task.deadline_cycles - cycles,
         breakdown: { base: cycles, cachePenalty: 0, branchPenalty: 0, osPenalty: 0 },
       };
-      // Patmos: fast and deterministic (scale for visual)
-      delayMs = Math.max(5, Math.round(realTiming.pasimWallMs * 0.1));
+      // Patmos: deterministic fixed delay for visual
+      delayMs = 5;
     } else {
-      // Normal CPU: use GCC wall time with added jitter to simulate non-determinism
-      const baseCycles = Math.round(realTiming.gccWallMs * 1000); // rough scale
-      const jitter = Math.floor(Math.random() * 200);
-      const cycles = baseCycles + jitter;
-      timing = {
-        cycles,
-        wcet: baseCycles + 200,
-        bcet: baseCycles,
-        jitter: 200,
-        executionTimeUs: realTiming.gccWallMs * 1000,
-        deadlineMet: false,
-        marginCycles: task.deadline_cycles - cycles,
-        breakdown: {
-          base: baseCycles,
-          cachePenalty: Math.floor(jitter * 0.5),
-          branchPenalty: Math.floor(jitter * 0.3),
-          osPenalty: Math.floor(jitter * 0.2),
-        },
-      };
-      // Normal CPU: slow and variable — scale GCC wall time for visual delay
-      delayMs = Math.max(100, Math.round(realTiming.gccWallMs * 3) + Math.floor(Math.random() * 200));
+      // Normal CPU: use timing model to simulate non-deterministic behavior
+      // The real pasim cycles tell us the instruction count; a normal CPU
+      // executes the SAME instructions but with unpredictable overhead
+      timing = computeNormalTiming(task);
+      // Visual delay: proportional to how close to deadline + random scheduling jitter
+      const deadlineRatio = timing.cycles / task.deadline_cycles;
+      delayMs = Math.max(80, Math.round(deadlineRatio * 300) + Math.floor(Math.random() * 150));
     }
   } else {
     // Fallback: client-side math model
@@ -146,8 +131,8 @@ function buildDecision(
       ? computePatmosTiming(task)
       : computeNormalTiming(task);
     delayMs = mode === "patmos"
-      ? cyclesToSimDelayMs(timing, "patmos")
-      : 500 + Math.floor(Math.random() * 400);
+      ? 5
+      : Math.max(80, Math.round((timing.cycles / task.deadline_cycles) * 300) + Math.floor(Math.random() * 150));
   }
 
   if (mode === "normal") {
@@ -162,7 +147,7 @@ function buildDecision(
       brake_force: brakeForce,
       cycles_used: timing.cycles,
       deadline_cycles: task.deadline_cycles,
-      deadline_met: mode === "patmos" ? timing.deadlineMet : false, // normal always misses deadline
+      deadline_met: timing.deadlineMet,
       execution_path: execPath,
       timestamp: Date.now(),
     },

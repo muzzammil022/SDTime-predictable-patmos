@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     expect \
     verilator \
     curl \
+    wget \
     gnupg \
     apt-transport-https \
     ca-certificates \
@@ -51,32 +52,24 @@ RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" \
     rm -rf /var/lib/apt/lists/*
 
 # ── 3. Build the T-CREST / Patmos toolchain ──
-ENV PATH="/root/t-crest/local/bin:${PATH}"
+ENV PATH="/root/t-crest/misc/local/bin:${PATH}"
 
 RUN mkdir -p /root/t-crest && \
     cd /root/t-crest && \
     git clone https://github.com/t-crest/patmos-misc.git misc && \
     cd misc && \
-    ./build.sh -q
+    ./build.sh -q -m -j1
 
 # Verify tools are available
 RUN which patmos-clang && patmos-clang --version || true
 RUN which pasim || true
-RUN which patemu || true
 
-# ── 4. Build patemu (hardware emulator) if not already present ──
-RUN if ! command -v patemu &> /dev/null; then \
-    cd /root/t-crest && \
-    if [ -d "patmos" ]; then \
-    cd patmos && make emulator || true; \
-    fi; \
-    fi
-
-# ── 5. Non-root runner user for safety ──
+# ── 4. Non-root runner user for safety ──
 RUN useradd -m runner && \
-    chmod -R a+rX /root/t-crest/local || true
+    chmod a+rx /root && \
+    chmod -R a+rX /root/t-crest/misc/local || true
 
-ENV PATH="/root/t-crest/local/bin:${PATH}"
+ENV PATH="/root/t-crest/misc/local/bin:${PATH}"
 
 USER runner
 WORKDIR /home/runner

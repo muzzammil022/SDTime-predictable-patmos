@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ── FastAPI backend ──
   backend:
@@ -24,5 +22,6 @@ services:
     build:
       context: ./executor
       dockerfile: Dockerfile
+    platform: linux/amd64              # precompiled patmos tools are x86_64
     image: sdtime-executor:latest      # tag so backend can reference it
     entrypoint: ["echo", "executor image ready — patmos-clang + pasim + patemu"]

@@ -8,6 +8,7 @@ import re
 import time
 import tempfile
 import os
+import base64
 import docker
 from docker.errors import ContainerError, ImageNotFound, APIError
 
@@ -88,7 +89,7 @@ def _build_compile_and_run_cmd(mode: str = "simulate") -> str:
     1. Compiles /tmp/main.c with patmos-clang
     2. Runs the binary with pasim or patemu
     """
-    compile_cmd = "patmos-clang /tmp/main.c -o /tmp/main 2>&1"
+    compile_cmd = "patmos-clang -O2 /tmp/main.c -o /tmp/main 2>&1"
 
     if mode == "emulate":
         # patemu: cycle-accurate hardware emulator
@@ -129,21 +130,14 @@ def run_on_patmos(
     """
     dk = _get_client()
 
-    # Escape code for shell injection safety
-    escaped = code.replace("'", "'\\''")
+    # Base64-encode the code to avoid all shell escaping issues
+    b64 = base64.b64encode(code.encode()).decode()
 
-    # Write code into container, compile with patmos-clang, run with pasim/patemu
-    write_cmd = f"echo '{escaped}' > /tmp/main.c"
-    compile_run_cmd = _build_compile_and_run_cmd(mode)
-
-    # Combined command
-    full_cmd = f"sh -c \"{write_cmd} && {compile_run_cmd[6:-1]}\""
-
-    # Simpler: use a single sh -c with heredoc-style
     full_cmd = (
         "sh -c \""
-        f"echo '{escaped}' > /tmp/main.c && "
-        "patmos-clang /tmp/main.c -o /tmp/main 2>/tmp/compile_err && "
+        "touch /tmp/compile_err /tmp/run_stats && "
+        f"echo '{b64}' | base64 -d > /tmp/main.c && "
+        "patmos-clang -O2 /tmp/main.c -o /tmp/main 2>/tmp/compile_err && "
         "echo '===COMPILE_OK===' && "
     )
 
@@ -155,9 +149,9 @@ def run_on_patmos(
     full_cmd += (
         "echo '===PROGRAM_OUTPUT_END==='; "
         "echo '===STATS_START==='; "
-        "cat /tmp/run_stats; "
+        "cat /tmp/run_stats 2>/dev/null; "
         "echo '===STATS_END==='; "
-        "cat /tmp/compile_err\""
+        "cat /tmp/compile_err 2>/dev/null\""
     )
 
     try:
@@ -165,6 +159,7 @@ def run_on_patmos(
         container_output = dk.containers.run(
             image=EXECUTOR_IMAGE,
             command=full_cmd,
+            platform="linux/amd64",
             remove=True,
             network_disabled=True,
             mem_limit="256m",
@@ -173,7 +168,6 @@ def run_on_patmos(
             stderr=True,
             stdout=True,
             detach=False,
-            timeout=timeout,
         )
         elapsed = (time.perf_counter() - t0) * 1000
         raw = container_output.decode("utf-8") if isinstance(container_output, bytes) else str(container_output)
@@ -261,16 +255,22 @@ def run_on_gcc(
     Compile and run C code with regular GCC as a baseline comparison.
     """
     dk = _get_client()
-    escaped = code.replace("'", "'\\''")
+
+    b64 = base64.b64encode(code.encode()).decode()
 
     full_cmd = (
         "sh -c \""
-        f"echo '{escaped}' > /tmp/main.c && "
+        "touch /tmp/compile_err && "
+        f"echo '{b64}' | base64 -d > /tmp/main.c && "
         "gcc -O2 /tmp/main.c -o /tmp/main_gcc 2>/tmp/compile_err && "
         "echo '===COMPILE_OK===' && "
+        "START_NS=$(date +%s%N) && "
         "/tmp/main_gcc 2>&1; "
+        "END_NS=$(date +%s%N); "
         "echo '===PROGRAM_OUTPUT_END==='; "
-        "cat /tmp/compile_err\""
+        "echo ===EXEC_NS===; "
+        "echo $((END_NS - START_NS)); "
+        "cat /tmp/compile_err 2>/dev/null\""
     )
 
     try:
@@ -278,6 +278,7 @@ def run_on_gcc(
         container_output = dk.containers.run(
             image=EXECUTOR_IMAGE,
             command=full_cmd,
+            platform="linux/amd64",
             remove=True,
             network_disabled=True,
             mem_limit="128m",
@@ -286,25 +287,33 @@ def run_on_gcc(
             stderr=True,
             stdout=True,
             detach=False,
-            timeout=timeout,
         )
         elapsed = (time.perf_counter() - t0) * 1000
         raw = container_output.decode("utf-8") if isinstance(container_output, bytes) else str(container_output)
 
         compile_ok = "===COMPILE_OK===" in raw
         program_output = ""
+        exec_time_ms = elapsed  # fallback to container time
 
         if compile_ok:
             after_compile = raw.split("===COMPILE_OK===", 1)[1]
             if "===PROGRAM_OUTPUT_END===" in after_compile:
                 program_output = after_compile.split("===PROGRAM_OUTPUT_END===", 1)[0].strip()
 
+            # Extract actual execution time (nanoseconds)
+            if "===EXEC_NS===" in raw:
+                try:
+                    ns_str = raw.split("===EXEC_NS===", 1)[1].strip().split()[0]
+                    exec_time_ms = int(ns_str) / 1_000_000
+                except (ValueError, IndexError):
+                    pass
+
         return {
             "success": compile_ok,
             "stdout": program_output,
             "stderr": raw if not compile_ok else None,
             "exit_code": 0 if compile_ok else 1,
-            "container_time_ms": round(elapsed, 2),
+            "container_time_ms": round(exec_time_ms, 3),
         }
 
     except ContainerError as e:
