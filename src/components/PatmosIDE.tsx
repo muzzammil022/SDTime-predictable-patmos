@@ -18,6 +18,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 });
 
 const CarDemo = dynamic(() => import("@/components/CarDemo"), { ssr: false });
+const RadarDashboard = dynamic(() => import("@/components/RadarDashboard"), { ssr: false });
 
 // ── GitHub Dark Theme for Monaco ──────────────────────────────────
 
@@ -88,6 +89,7 @@ export default function PatmosIDE() {
   const [btmTab, setBtmTab] = useState<BottomTab>("output");
   const [btmH, setBtmH] = useState(200);
   const [carDemo, setCarDemo] = useState(false);
+  const [radarView, setRadarView] = useState(false);
 
   // ── Execution ──
   const [running, setRunning] = useState(false);
@@ -125,6 +127,7 @@ export default function PatmosIDE() {
     setOpenIds((p) => (p.includes(id) ? p : [...p, id]));
     setActiveId(id);
     setCarDemo(false);
+    setRadarView(false);
   }, []);
 
   const closeTab = useCallback(
@@ -326,7 +329,14 @@ export default function PatmosIDE() {
           label="Car Demo"
           tip="Obstacle avoidance demo"
           on={carDemo}
-          click={() => setCarDemo((v) => !v)}
+          click={() => { setCarDemo((v) => !v); setRadarView(false); }}
+        />
+        <TB
+          icon="📡"
+          label="Radar"
+          tip="WebSocket radar dashboard"
+          on={radarView}
+          click={() => { setRadarView((v) => !v); setCarDemo(false); }}
         />
         <TB
           icon="⊞"
@@ -384,7 +394,7 @@ export default function PatmosIDE() {
                         <SideFile
                           key={f.id}
                           f={f}
-                          active={activeId === f.id && !carDemo}
+                          active={activeId === f.id && !carDemo && !radarView}
                           mod={modified.has(f.id)}
                           renaming={renameId === f.id}
                           rnVal={renameVal}
@@ -421,7 +431,7 @@ export default function PatmosIDE() {
                       <SideFile
                         key={f.id}
                         f={f}
-                        active={activeId === f.id && !carDemo}
+                        active={activeId === f.id && !carDemo && !radarView}
                         mod={modified.has(f.id)}
                         click={() => openFile(f.id)}
                       />
@@ -464,13 +474,14 @@ export default function PatmosIDE() {
             {openIds.map((id) => {
               const f = files.find((x) => x.id === id);
               if (!f) return null;
-              const isActive = activeId === id && !carDemo;
+              const isActive = activeId === id && !carDemo && !radarView;
               return (
                 <div
                   key={id}
                   onClick={() => {
                     setActiveId(id);
                     setCarDemo(false);
+                    setRadarView(false);
                   }}
                   className={`flex items-center gap-2 h-full px-3 text-xs cursor-pointer border-r border-[#21262d] shrink-0 transition-colors ${
                     isActive
@@ -508,11 +519,22 @@ export default function PatmosIDE() {
                 </button>
               </div>
             )}
+            {radarView && (
+              <div className="flex items-center gap-2 h-full px-3 text-xs cursor-default border-r border-[#21262d] shrink-0 bg-[#0d1117] text-[#e6edf3] border-t-2 border-t-[#58a6ff]">
+                📡 Radar Dashboard
+                <button
+                  onClick={() => setRadarView(false)}
+                  className="ml-1 text-[#484f58] hover:text-[#e6edf3] text-[10px]"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <div className="flex-1 bg-[#010409]" />
           </div>
 
           {/* Breadcrumb (editor only) */}
-          {!carDemo && activeFile && (
+          {!carDemo && !radarView && activeFile && (
             <div className="flex items-center h-6 px-3 bg-[#0d1117] border-b border-[#21262d] text-[11px] text-[#8b949e] shrink-0">
               <span className="text-[#484f58]">
                 {activeFile.isSample ? "samples" : "files"}
@@ -524,7 +546,9 @@ export default function PatmosIDE() {
 
           {/* Content area */}
           <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-            {carDemo ? (
+            {radarView ? (
+              <RadarDashboard />
+            ) : carDemo ? (
               <div className="h-full overflow-auto bg-[#0d1117] p-6">
                 <div className="mb-4 p-3 rounded-lg bg-[#161b22] border border-[#30363d] text-xs text-[#8b949e]">
                   <p className="mb-1">
