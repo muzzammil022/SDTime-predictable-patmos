@@ -97,7 +97,7 @@ export default function ControlPanel({
           </div>
           <div className="flex justify-between">
             <span>Backend</span>
-            <span className="text-yellow-400">Mock (pasim planned)</span>
+            <span className="text-yellow-400">Patmos Simulator -Pasim </span>
           </div>
         </div>
       </div>
